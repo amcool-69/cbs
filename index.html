@@ -114,21 +114,44 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 <main>
   <section class="panel">
     <h2>01 // Target configuration</h2>
+
     <label for="target">Target URL</label>
     <input id="target" value="https://amcool-69.github.io/gdguy23.github.io/">
-    <p class="muted">Only HTTPS pages on the configured hostname are accepted. This allowlist is a client-side guard, not a security boundary.</p>
+
+    <p class="muted">
+      Only HTTPS pages on the configured hostname are accepted.
+      This browser-side check is not a server-side security boundary.
+    </p>
 
     <label for="supabaseUrl">Supabase project URL</label>
-    <input id="supabaseUrl" placeholder="https://YOUR-PROJECT.supabase.co">
+    <input
+      id="supabaseUrl"
+      type="url"
+      value="https://dvoqulyvlzqorjufedaw.supabase.co"
+      placeholder="https://YOUR-PROJECT.supabase.co"
+      autocomplete="url"
+    >
 
     <label for="supabaseKey">Supabase publishable key</label>
-    <input id="supabaseKey" placeholder="sb_publishable_...">
+    <input
+      id="supabaseKey"
+      type="password"
+      value="sb_publishable_8Agxbz9OfNcteMXt1BQGzQ_N2-XQYbr"
+      placeholder="sb_publishable_..."
+      autocomplete="off"
+      spellcheck="false"
+    >
 
     <div class="row">
-      <button id="saveConfig">Save configuration</button>
-      <button id="connectDb">Test database connection</button>
-      <button id="checkTarget">Check target URL</button>
+      <button id="toggleKey" type="button">Show key</button>
+      <button id="saveConfig" type="button">Validate configuration</button>
+      <button id="connectDb" type="button">Test database connection</button>
+      <button id="checkTarget" type="button">Check target URL</button>
     </div>
+    <p class="muted">
+      The publishable key is intended for client-side use with appropriate
+      database permissions and RLS. Never put a secret/service-role key here.
+    </p>
   </section>
 
   <section class="panel">
@@ -149,31 +172,36 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 
   <section class="panel">
     <h2>03 // Isolated JavaScript test</h2>
-    <p class="muted">Runs in a separate sandboxed preview, not in the target website.</p>
+    <p class="muted">
+      Runs in a sandboxed preview, not in the target website.
+    </p>
 
     <label for="payloadName">Test name</label>
     <input id="payloadName" value="lab-demo">
 
     <label for="payloadCode">JavaScript payload</label>
-    <textarea id="payloadCode">document.body.innerHTML = "&lt;h2&gt;Lab test successful&lt;/h2&gt;&lt;p&gt;JavaScript executed inside the isolated preview.&lt;/p&gt;";</textarea>
+    <textarea id="payloadCode">document.body.innerHTML = "<h2>Lab test successful</h2><p>JavaScript executed inside the isolated preview.</p>";</textarea>
 
-    <button id="runPayload">Run isolated test</button>
-    <button id="resetPreview">Reset preview</button>
+    <button id="runPayload" type="button">Run isolated test</button>
+    <button id="resetPreview" type="button">Reset preview</button>
 
     <label>Sandbox output</label>
     <iframe id="preview" title="Isolated JavaScript preview"
-      sandbox="allow-scripts" srcdoc="<!doctype html><html><body style='font-family:sans-serif;padding:16px'><h3>Ready</h3><p>Run a test to see its output.</p></body></html>"></iframe>
+      sandbox="allow-scripts"
+      srcdoc="<!doctype html><html><body style='font-family:sans-serif;padding:16px'><h3>Ready</h3><p>Run a test to see its output.</p></body></html>"></iframe>
   </section>
 
   <section class="panel">
     <h2>04 // Latest test report</h2>
     <div id="report" class="muted">No tests have been run yet.</div>
-    <button id="showReport">Refresh report</button>
-    <button id="clearConsole">Clear console</button>
+    <button id="showReport" type="button">Refresh report</button>
+    <button id="clearConsole" type="button">Clear console</button>
   </section>
 </main>
 
-<footer>Chicken Bucks Security Lab · Use only systems you own or have permission to test.</footer>
+<footer>
+  Chicken Bucks Security Lab · Use only systems you own or have permission to test.
+</footer>
 
 <script>
 "use strict";
@@ -190,9 +218,11 @@ let lastAccessTest = null;
 function log(message, type = "info") {
   const line = document.createElement("div");
   line.className = "log " + type;
-  line.textContent = "[" + new Date().toLocaleTimeString() + "] " + message;
+  line.textContent =
+    "[" + new Date().toLocaleTimeString() + "] " + message;
   $("consoleOutput").appendChild(line);
-  $("consoleOutput").scrollTop = $("consoleOutput").scrollHeight;
+  $("consoleOutput").scrollTop =
+    $("consoleOutput").scrollHeight;
 }
 
 function record(title, result) {
@@ -215,6 +245,7 @@ function renderReport() {
 
 function getAllowedTarget() {
   let url;
+
   try {
     url = new URL($("target").value.trim());
   } catch {
@@ -224,9 +255,11 @@ function getAllowedTarget() {
   if (url.protocol !== "https:") {
     throw new Error("Only HTTPS targets are accepted.");
   }
+
   if (!ALLOWED_HOSTS.has(url.hostname.toLowerCase())) {
     throw new Error("Target blocked: hostname is not allowlisted.");
   }
+
   if (url.username || url.password) {
     throw new Error("URLs containing embedded credentials are blocked.");
   }
@@ -239,9 +272,13 @@ function loadSupabaseScript() {
 
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    script.src =
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+
     script.onload = resolve;
-    script.onerror = () => reject(new Error("Could not load Supabase JS."));
+    script.onerror = () =>
+      reject(new Error("Could not load Supabase JS. Check your connection."));
+
     document.head.appendChild(script);
   });
 }
@@ -253,12 +290,16 @@ async function connectDatabase() {
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
     throw new Error("Enter a valid Supabase project URL.");
   }
-  if (!key || /\s/.test(key)) {
-    throw new Error("Enter your Supabase publishable key.");
+
+  if (!key || /\s/.test(key) || !key.startsWith("sb_publishable_")) {
+    throw new Error("Enter a valid Supabase publishable key.");
   }
 
   await loadSupabaseScript();
-  dbClient = window.supabase.createClient(url, key);
+
+  if (!dbClient) {
+    dbClient = window.supabase.createClient(url, key);
+  }
 
   log("Supabase client initialized.", "success");
   return dbClient;
@@ -269,6 +310,7 @@ async function testAccess() {
     if (!dbClient) await connectDatabase();
 
     log("Testing SELECT access to injector_lab...");
+
     const { data, error } = await dbClient
       .from("injector_lab")
       .select("id")
@@ -279,6 +321,7 @@ async function testAccess() {
         success: false,
         message: error.message
       };
+
       log("Database access test failed: " + error.message, "error");
       record("Supabase access test", "FAILED: " + error.message);
       return;
@@ -286,12 +329,17 @@ async function testAccess() {
 
     lastAccessTest = {
       success: true,
-      message: "SELECT request succeeded; returned " + data.length + " row(s)."
+      message: "SELECT succeeded; returned " + data.length + " row(s)."
     };
-    log("SELECT request succeeded. Returned " + data.length + " row(s).", "success");
+
+    log(lastAccessTest.message, "success");
     record("Supabase access test", lastAccessTest.message);
   } catch (error) {
-    lastAccessTest = { success: false, message: error.message };
+    lastAccessTest = {
+      success: false,
+      message: error.message
+    };
+
     log(error.message, "error");
     record("Supabase access test", "ERROR: " + error.message);
   }
@@ -300,8 +348,10 @@ async function testAccess() {
 function checkTarget() {
   try {
     const url = getAllowedTarget();
+
     log("Target accepted by client-side allowlist: " + url.href, "success");
-    log("This validates the URL only; it does not prove a vulnerability exists.");
+    log("URL validation does not scan the site or prove a vulnerability exists.");
+
     record("Target URL check", "Accepted: " + url.href);
   } catch (error) {
     log(error.message, "error");
@@ -317,21 +367,25 @@ function runIsolatedPayload() {
     log("Test name must use letters, numbers, underscores or hyphens.", "error");
     return;
   }
+
   if (!code.trim()) {
     log("Enter JavaScript to test.", "warn");
     return;
   }
 
-  // The payload runs only in a sandboxed iframe without same-origin access.
+  // JavaScript executes in a separate sandbox without same-origin access.
   const safeCode = JSON.stringify(code);
   const safeName = JSON.stringify(name);
+
   const srcdoc = `<!doctype html>
-<html><head><meta charset="utf-8">
-<title>Isolated lab</title></head>
+<html>
+<head><meta charset="utf-8"><title>Isolated lab</title></head>
 <body style="font:16px sans-serif;padding:16px">
-<h3>Isolated lab: ${name.replace(/[&<>"']/g, "")}</h3>
+<h3 id="heading"></h3>
 <p id="status">Executing test...</p>
 <script>
+document.getElementById("heading").textContent =
+  "Isolated lab: " + ${safeName};
 try {
   (new Function("document", ${safeCode}))(document);
   document.getElementById("status").textContent = "Test completed.";
@@ -340,9 +394,11 @@ try {
     "Test error: " + error.message;
 }
 <\/script>
-</body></html>`;
+</body>
+</html>`;
 
   $("preview").srcdoc = srcdoc;
+
   log("Started isolated JavaScript test: " + name, "success");
   record("Isolated JavaScript test", "Executed in a sandboxed preview.");
 }
@@ -350,6 +406,7 @@ try {
 function resetPreview() {
   $("preview").srcdoc =
     "<!doctype html><html><body style='font-family:sans-serif;padding:16px'><h3>Ready</h3><p>Run a test to see its output.</p></body></html>";
+
   log("Isolated preview reset.");
 }
 
@@ -360,20 +417,20 @@ function showReport() {
 
 function help() {
   log("AVAILABLE COMMANDS", "success");
+
   [
     "help — show commands",
     "scan — validate the configured target URL",
     "check target — validate the configured target URL",
+    "test xss — run the isolated JavaScript preview",
     "test access — test SELECT access to injector_lab",
     "connect database — initialize the Supabase client",
-    "test xss — run the isolated JavaScript preview",
     "show report — display recorded test results",
     "clear — clear console output",
     "reset preview — reset the isolated preview"
   ].forEach(item => log("  " + item));
 }
 
-// Convert natural language into supported console commands.
 function convertToCommand(input) {
   const text = input.trim().toLowerCase().replace(/[.!?]+$/, "");
 
@@ -451,6 +508,7 @@ async function executeCommand(raw) {
 
 $("commandForm").addEventListener("submit", async event => {
   event.preventDefault();
+
   const input = $("commandInput");
   const raw = input.value.trim();
 
@@ -466,30 +524,60 @@ $("commandForm").addEventListener("submit", async event => {
 $("commandInput").addEventListener("keydown", event => {
   if (event.key === "ArrowUp") {
     event.preventDefault();
+
     if (historyIndex > 0) historyIndex--;
+
     $("commandInput").value = history[historyIndex] || "";
   } else if (event.key === "ArrowDown") {
     event.preventDefault();
+
     if (historyIndex < history.length) historyIndex++;
+
     $("commandInput").value = history[historyIndex] || "";
   }
+});
+
+$("toggleKey").addEventListener("click", () => {
+  const input = $("supabaseKey");
+  const showing = input.type === "text";
+
+  input.type = showing ? "password" : "text";
+  $("toggleKey").textContent = showing ? "Show key" : "Hide key";
 });
 
 $("saveConfig").addEventListener("click", () => {
   try {
     getAllowedTarget();
-    log("Target configuration validated.", "success");
-    log("Supabase settings remain in this page's current session.");
-    record("Configuration", "Target URL validated.");
+
+    const url = $("supabaseUrl").value.trim().replace(/\/+$/, "");
+    const key = $("supabaseKey").value.trim();
+
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
+      throw new Error("Enter a valid Supabase project URL.");
+    }
+
+    if (!key.startsWith("sb_publishable_")) {
+      throw new Error("Enter your Supabase publishable key.");
+    }
+
+    // Keep the current configuration in memory only.
+    // Do not store credentials in localStorage.
+    dbClient = null;
+
+    log("Configuration validated for this session.", "success");
+    record("Configuration", "Target and Supabase settings validated.");
   } catch (error) {
     log(error.message, "error");
+    record("Configuration", "FAILED: " + error.message);
   }
 });
 
 $("connectDb").addEventListener("click", async () => {
   try {
+    dbClient = null;
     await connectDatabase();
-    record("Supabase connection", "Client initialized.");
+
+    record("Supabase connection", "Client initialized. Run 'test access' to check table permissions.");
   } catch (error) {
     log(error.message, "error");
     record("Supabase connection", "FAILED: " + error.message);
@@ -500,13 +588,15 @@ $("checkTarget").addEventListener("click", checkTarget);
 $("runPayload").addEventListener("click", runIsolatedPayload);
 $("resetPreview").addEventListener("click", resetPreview);
 $("showReport").addEventListener("click", showReport);
+
 $("clearConsole").addEventListener("click", () => {
   $("consoleOutput").replaceChildren();
 });
 
 log("Chicken Bucks Security Lab initialized.", "success");
 log('Type "help", or try "scan the site".');
-log("Natural-language command conversion is enabled.");
+log("Supabase project URL prefilled.");
+log("Configuration stays in the current page session.");
 </script>
 </body>
 </html>
